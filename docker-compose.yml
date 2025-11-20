@@ -1,0 +1,97 @@
+version: '3.8'
+
+services:
+  gold-bot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: gold-trading-bot
+    restart: unless-stopped
+
+    environment:
+      # Oanda API Configuration
+      - OANDA_API_KEY=${OANDA_API_KEY}
+      - OANDA_ACCOUNT_ID=${OANDA_ACCOUNT_ID}
+      - TRADING_MODE=${TRADING_MODE:-practice}
+
+      # Risk Management
+      - MAX_RISK_PER_TRADE=${MAX_RISK_PER_TRADE:-0.015}
+      - MAX_PORTFOLIO_RISK=${MAX_PORTFOLIO_RISK:-0.05}
+      - INITIAL_BALANCE=${INITIAL_BALANCE:-10000}
+
+      # Daily Targets
+      - TARGET_DAILY_PROFIT=${TARGET_DAILY_PROFIT:-100}
+      - MAX_DAILY_LOSS=${MAX_DAILY_LOSS:-150}
+
+      # Strategy Parameters
+      - EMA_FAST=${EMA_FAST:-20}
+      - EMA_SLOW=${EMA_SLOW:-50}
+      - RSI_PERIOD=${RSI_PERIOD:-14}
+      - RSI_BULLISH_MIN=${RSI_BULLISH_MIN:-40}
+      - RSI_BULLISH_MAX=${RSI_BULLISH_MAX:-70}
+      - RSI_BEARISH_MIN=${RSI_BEARISH_MIN:-30}
+      - RSI_BEARISH_MAX=${RSI_BEARISH_MAX:-60}
+
+      # Entry/Exit Rules
+      - STOP_LOSS_PIPS=${STOP_LOSS_PIPS:-20}
+      - TAKE_PROFIT_1_RR=${TAKE_PROFIT_1_RR:-1.5}
+      - TAKE_PROFIT_2_RR=${TAKE_PROFIT_2_RR:-2.5}
+      - MOVE_STOP_TO_BE=${MOVE_STOP_TO_BE:-true}
+
+      # Position Sizing
+      - MIN_POSITION_SIZE=${MIN_POSITION_SIZE:-100}
+      - MAX_POSITION_SIZE=${MAX_POSITION_SIZE:-50000}
+
+      # Telegram Configuration
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID}
+      - ENABLE_TELEGRAM=${ENABLE_TELEGRAM:-true}
+
+      # Logging
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - LOG_TO_FILE=${LOG_TO_FILE:-true}
+
+      # Trading Schedule
+      - SCAN_INTERVAL_MINUTES=${SCAN_INTERVAL_MINUTES:-15}
+      - TRADING_START_HOUR=${TRADING_START_HOUR:-0}
+      - TRADING_END_HOUR=${TRADING_END_HOUR:-23}
+
+      # Timezone
+      - TZ=${TZ:-UTC}
+
+    volumes:
+      # Persist logs and data
+      - ./logs:/app/logs
+      - ./data:/app/data
+
+    networks:
+      - gold-trading-network
+
+    # Resource limits (adjust based on VPS specs)
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 128M
+
+    # Logging configuration
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+    # Health check
+    healthcheck:
+      test: ["CMD", "node", "-e", "process.exit(0)"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+networks:
+  gold-trading-network:
+    driver: bridge

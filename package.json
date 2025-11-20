@@ -1,0 +1,42 @@
+{
+  "name": "oanda-gold-trading-bot",
+  "version": "1.0.0",
+  "description": "Automated Gold (XAU/USD) trading bot using Oanda API with Triple Confirmation strategy",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js",
+    "test": "node src/test_connection.js",
+    "docker:build": "docker build -t gold-bot .",
+    "docker:run": "docker-compose up -d",
+    "docker:stop": "docker-compose down",
+    "docker:logs": "docker-compose logs -f"
+  },
+  "keywords": [
+    "trading",
+    "gold",
+    "oanda",
+    "xauusd",
+    "forex",
+    "automated-trading",
+    "telegram-bot"
+  ],
+  "author": "Paul Turner",
+  "license": "MIT",
+  "dependencies": {
+    "@oanda/v20": "3.0.25-0",
+    "technicalindicators": "^3.1.0",
+    "node-cron": "^3.0.3",
+    "winston": "^3.11.0",
+    "dotenv": "^16.3.1",
+    "axios": "^1.6.2",
+    "node-telegram-bot-api": "^0.64.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

@@ -564,11 +564,11 @@ class GoldTelegramBot {
       `Symbol: ${symbol}\n` +
       `Side: ${side}\n` +
       `Strategy: ${strategy}\n` +
-      `Entry: $${entryPrice.toFixed(2)}\n` +
+      `Entry: \\$${entryPrice.toFixed(2)}\n` +
       `Size: ${size} units\n` +
-      `Stop Loss: $${stopLoss.toFixed(2)}\n` +
-      `Take Profit: $${takeProfit.toFixed(2)}\n` +
-      `Risk: $${riskAmount.toFixed(2)}`;
+      `Stop Loss: \\$${stopLoss.toFixed(2)}\n` +
+      `Take Profit: \\$${takeProfit ? takeProfit.toFixed(2) : 'Not set'}\n` +
+      `Risk: \\$${riskAmount.toFixed(2)}`;
 
     await this.sendNotification(message);
   }
@@ -582,9 +582,9 @@ class GoldTelegramBot {
       `${emoji} *TRADE CLOSED*\n\n` +
       `Symbol: ${symbol}\n` +
       `Reason: ${reason}\n` +
-      `Entry: $${entryPrice.toFixed(2)}\n` +
-      `Exit: $${exitPrice.toFixed(2)}\n` +
-      `P&L: $${pnl.toFixed(2)} (${pnlPct >= 0 ? '+' : ''}${pnlPct.toFixed(2)}%)`;
+      `Entry: \\$${entryPrice.toFixed(2)}\n` +
+      `Exit: \\$${exitPrice.toFixed(2)}\n` +
+      `P&L: \\$${pnl.toFixed(2)} (${pnlPct >= 0 ? '+' : ''}${pnlPct.toFixed(2)}%)`;
 
     await this.sendNotification(message);
   }

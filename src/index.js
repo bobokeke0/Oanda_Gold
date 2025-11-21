@@ -235,12 +235,11 @@ class GoldTradingBot {
       logger.info(`Take Profit 2: $${levels.takeProfit2.toFixed(2)}`);
       logger.info('');
 
-      // Place market order with stop loss only (TP managed manually for now)
+      // Place market order with stop loss only
       const order = await this.client.placeMarketOrder(
         Config.TRADING_SYMBOL,
         units,
         levels.stopLoss
-        // levels.takeProfit1 // Disabled due to LOSING_TAKE_PROFIT error
       );
 
       if (!order.success) {
@@ -249,6 +248,19 @@ class GoldTradingBot {
           logger.error(`Reject reason: ${order.rejectReason}`);
         }
         return;
+      }
+
+      // Add take profit to the trade after it opens (avoids LOSING_TAKE_PROFIT error)
+      if (order.tradeId) {
+        try {
+          await this.client.modifyTrade(order.tradeId, {
+            takeProfit: { price: levels.takeProfit1.toFixed(2) }
+          });
+          logger.info(`✅ Take profit set at $${levels.takeProfit1.toFixed(2)}`);
+        } catch (tpError) {
+          logger.warn(`Failed to set take profit: ${tpError.message}`);
+          logger.warn('Trade will continue with stop loss only');
+        }
       }
 
       logger.info('');
@@ -346,8 +358,45 @@ class GoldTradingBot {
 
         logger.info(`Trade ${tradeId} was closed`);
 
-        // Note: We don't have the exact close price/PnL from this check
-        // In a production system, you'd track this via webhooks or transaction history
+        // Fetch close details from transaction history
+        try {
+          const response = await this.client.makeRequest('GET', `/v3/accounts/${this.client.accountId}/trades/${tradeId}`);
+          if (response.trade && response.trade.state === 'CLOSED') {
+            const trade = response.trade;
+            const entryPrice = parseFloat(trade.price);
+            const exitPrice = parseFloat(trade.averageClosePrice || entryPrice);
+            const pnl = parseFloat(trade.realizedPL || 0);
+            const pnlPct = (pnl / (entryPrice * Math.abs(parseFloat(trade.initialUnits)))) * 100;
+
+            const reason = trade.closeReason || 'Unknown';
+
+            logger.info(`💰 P&L: ${pnl >= 0 ? '+' : ''}$${pnl.toFixed(2)} (${pnlPct >= 0 ? '+' : ''}${pnlPct.toFixed(2)}%)`);
+            logger.info(`Reason: ${reason}`);
+
+            // Notify via Telegram
+            if (this.telegramBot) {
+              await this.telegramBot.notifyTradeClosed(
+                tracked.symbol,
+                entryPrice,
+                exitPrice,
+                pnl,
+                pnlPct,
+                reason
+              );
+            }
+
+            // Update risk manager
+            this.riskManager.recordClosedTrade({
+              entryPrice,
+              exitPrice,
+              size: Math.abs(parseFloat(trade.initialUnits)),
+              pnl,
+              winningTrade: pnl > 0
+            });
+          }
+        } catch (error) {
+          logger.warn(`Could not fetch close details for trade ${tradeId}: ${error.message}`);
+        }
       }
 
     } catch (error) {

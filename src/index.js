@@ -499,13 +499,7 @@ class GoldTradingBot {
             }
 
             // Update risk manager
-            this.riskManager.recordClosedTrade({
-              entryPrice,
-              exitPrice,
-              size: Math.abs(parseFloat(trade.initialUnits)),
-              pnl,
-              winningTrade: pnl > 0
-            });
+            this.riskManager.recordTrade(pnl);
           }
         } catch (error) {
           logger.warn(`Could not fetch close details for trade ${tradeId}: ${error.message}`);

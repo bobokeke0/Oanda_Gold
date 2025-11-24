@@ -564,11 +564,11 @@ class GoldTelegramBot {
       `Symbol: ${symbol}\n` +
       `Side: ${side}\n` +
       `Strategy: ${strategy}\n` +
-      `Entry: \\$${entryPrice.toFixed(2)}\n` +
+      `Entry: $${entryPrice.toFixed(2)}\n` +
       `Size: ${size} units\n` +
-      `Stop Loss: \\$${stopLoss.toFixed(2)}\n` +
-      `Take Profit: \\$${takeProfit ? takeProfit.toFixed(2) : 'Not set'}\n` +
-      `Risk: \\$${riskAmount.toFixed(2)}`;
+      `Stop Loss: $${stopLoss.toFixed(2)}\n` +
+      `Take Profit: $${takeProfit ? takeProfit.toFixed(2) : 'Not set'}\n` +
+      `Risk: $${riskAmount.toFixed(2)}`;
 
     await this.sendNotification(message);
   }
@@ -577,14 +577,17 @@ class GoldTelegramBot {
    * Trade closed notification
    */
   async notifyTradeClosed(symbol, entryPrice, exitPrice, pnl, pnlPct, reason) {
-    const emoji = pnl > 0 ? '🎉' : '😔';
+    const emoji = pnl >= 0 ? '🎉' : '😔';
+    const pnlSign = pnl >= 0 ? '+' : '';
+    const pctSign = pnlPct >= 0 ? '+' : '';
+
     const message =
       `${emoji} *TRADE CLOSED*\n\n` +
       `Symbol: ${symbol}\n` +
       `Reason: ${reason}\n` +
-      `Entry: \\$${entryPrice.toFixed(2)}\n` +
-      `Exit: \\$${exitPrice.toFixed(2)}\n` +
-      `P&L: \\$${pnl.toFixed(2)} (${pnlPct >= 0 ? '+' : ''}${pnlPct.toFixed(2)}%)`;
+      `Entry: $${entryPrice.toFixed(2)}\n` +
+      `Exit: $${exitPrice.toFixed(2)}\n` +
+      `P&L: ${pnlSign}$${Math.abs(pnl).toFixed(2)} (${pctSign}${pnlPct.toFixed(2)}%)`;
 
     await this.sendNotification(message);
   }

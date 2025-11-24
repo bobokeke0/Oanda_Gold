@@ -401,14 +401,17 @@ class GoldTradingBot {
                 tracked.tp1Hit = true;
 
                 if (this.telegramBot) {
+                  // Escape underscores in symbol for Markdown
+                  const symbolEscaped = trade.instrument.replace(/_/g, '\\_');
+
                   await this.telegramBot.sendNotification(
                     `🎯 *TP1 Hit - 60% Closed!*\n\n` +
-                    `${trade.instrument}\n` +
+                    `${symbolEscaped}\n` +
                     `Closed: ${closeUnits} units\n` +
-                    `Banked: \\$${pnl.toFixed(2)}\n\n` +
+                    `Banked: $${pnl.toFixed(2)}\n\n` +
                     `Remaining 40%:\n` +
-                    `Stop: Breakeven (\\$${tracked.entryPrice.toFixed(2)})\n` +
-                    `TP2: \\$${tracked.takeProfit2.toFixed(2)}`
+                    `Stop: Breakeven ($${tracked.entryPrice.toFixed(2)})\n` +
+                    `TP2: $${tracked.takeProfit2.toFixed(2)}`
                   );
                 }
               }

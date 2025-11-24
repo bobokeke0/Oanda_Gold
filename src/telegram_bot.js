@@ -559,11 +559,15 @@ class GoldTelegramBot {
    */
   async notifyTradeOpened(symbol, side, entryPrice, size, stopLoss, takeProfit, strategy) {
     const riskAmount = Math.abs(entryPrice - stopLoss) * size;
+    // Escape underscores for Markdown
+    const symbolEscaped = symbol.replace(/_/g, '\\_');
+    const strategyEscaped = strategy.replace(/_/g, '\\_');
+
     const message =
       '🟢 *TRADE OPENED*\n\n' +
-      `Symbol: ${symbol}\n` +
+      `Symbol: ${symbolEscaped}\n` +
       `Side: ${side}\n` +
-      `Strategy: ${strategy}\n` +
+      `Strategy: ${strategyEscaped}\n` +
       `Entry: $${entryPrice.toFixed(2)}\n` +
       `Size: ${size} units\n` +
       `Stop Loss: $${stopLoss.toFixed(2)}\n` +
@@ -580,10 +584,12 @@ class GoldTelegramBot {
     const emoji = pnl >= 0 ? '🎉' : '😔';
     const pnlSign = pnl >= 0 ? '+' : '';
     const pctSign = pnlPct >= 0 ? '+' : '';
+    // Escape underscores for Markdown
+    const symbolEscaped = symbol.replace(/_/g, '\\_');
 
     const message =
       `${emoji} *TRADE CLOSED*\n\n` +
-      `Symbol: ${symbol}\n` +
+      `Symbol: ${symbolEscaped}\n` +
       `Reason: ${reason}\n` +
       `Entry: $${entryPrice.toFixed(2)}\n` +
       `Exit: $${exitPrice.toFixed(2)}\n` +

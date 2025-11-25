@@ -720,3 +720,4 @@ That's how you stay in business for 20+ years.
 ---
 
 *"The goal is not to be right all the time. The goal is to make more when you're right than you lose when you're wrong. Simple as that."*
+- Always remember I am in UK timezone, so next scan of 14:15 isn't applicable to me

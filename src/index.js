@@ -94,9 +94,15 @@ class GoldTradingBot {
 
       // Start Telegram bot if enabled
       if (Config.ENABLE_TELEGRAM) {
-        logger.info('Starting Telegram bot...');
-        this.telegramBot = new GoldTelegramBot(logger, this);
-        await this.telegramBot.start();
+        try {
+          logger.info('Starting Telegram bot...');
+          this.telegramBot = new GoldTelegramBot(logger, this);
+          await this.telegramBot.start();
+        } catch (error) {
+          logger.error(`Failed to start Telegram bot: ${error.message}`);
+          logger.warn('⚠️ Trading bot will continue without Telegram notifications');
+          this.telegramBot = null; // Disable Telegram if it fails
+        }
       }
 
       // Display strategy information
@@ -660,10 +666,25 @@ class GoldTradingBot {
   }
 }
 
+// Global error handlers to prevent crashes
+process.on('unhandledRejection', (reason, promise) => {
+  logger.error(`Unhandled Promise Rejection: ${reason}`);
+  logger.warn('Bot will continue running despite the error');
+  // Don't exit - keep the bot running
+});
+
+process.on('uncaughtException', (error) => {
+  logger.error(`Uncaught Exception: ${error.message}`);
+  logger.error(error.stack);
+  logger.warn('Bot will attempt to continue running');
+  // Don't exit immediately - give it a chance to recover
+});
+
 // Start the bot
 const bot = new GoldTradingBot();
 bot.start().catch(error => {
-  logger.error(`Fatal error: ${error.message}`);
+  logger.error(`Fatal error during startup: ${error.message}`);
+  logger.error(error.stack);
   process.exit(1);
 });
 

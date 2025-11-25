@@ -55,9 +55,26 @@ class GoldTelegramBot {
       // Handle callback queries (button presses)
       this.bot.on('callback_query', (query) => this.handleCallback(query));
 
-      // Error handling
+      // Error handling - CRITICAL: Don't let Telegram errors crash the main bot
       this.bot.on('polling_error', (error) => {
-        this.logger.error(`Telegram polling error: ${error.message}`);
+        // Log the error but don't throw - we want the bot to keep running
+        this.logger.warn(`Telegram polling error (non-fatal): ${error.message}`);
+
+        // If it's a network error, it will auto-retry - no action needed
+        if (error.code === 'EFATAL' || error.code === 'ETELEGRAM') {
+          this.logger.warn('Telegram connection issue - will auto-reconnect');
+        }
+      });
+
+      // Catch any unhandled errors from the Telegram bot
+      this.bot.on('error', (error) => {
+        this.logger.error(`Telegram bot error: ${error.message}`);
+        // Don't throw - keep main bot running
+      });
+
+      // Catch webhook errors
+      this.bot.on('webhook_error', (error) => {
+        this.logger.error(`Telegram webhook error: ${error.message}`);
       });
 
       this.logger.info('✅ Telegram bot started successfully!');

@@ -61,6 +61,12 @@ class Config {
   static MIN_EMA_SEPARATION_PIPS = parseFloat(process.env.MIN_EMA_SEPARATION_PIPS || '1000'); // $10.00 minimum EMA separation
   static MIN_CONFIDENCE = parseFloat(process.env.MIN_CONFIDENCE || '70'); // Skip setups below 70% confidence
 
+  // Strategy Selection
+  static STRATEGY_TYPE = process.env.STRATEGY_TYPE || 'triple_confirmation'; // 'triple_confirmation' or 'ma_crossover'
+
+  // Bot Identification
+  static BOT_NAME = process.env.BOT_NAME || 'Gold Bot'; // Used for logging and notifications
+
   // Entry & Exit Rules
   // For gold: 1 pip = $0.01, so 300 pips = $3.00 stop loss (reasonable for gold volatility)
   static STOP_LOSS_PIPS = parseFloat(process.env.STOP_LOSS_PIPS || '300');
@@ -193,8 +199,10 @@ class Config {
     const modeEmoji = mode === 'LIVE' ? '🔴' : '📄';
 
     console.log('\n' + '='.repeat(60));
-    console.log('GOLD TRADING BOT CONFIGURATION');
+    console.log(`${this.BOT_NAME.toUpperCase()} CONFIGURATION`);
     console.log('='.repeat(60));
+    console.log(`🤖 Bot Name: ${this.BOT_NAME}`);
+    console.log(`📊 Strategy: ${this.STRATEGY_TYPE}`);
     console.log(`${modeEmoji} Trading Mode: ${mode}`);
     console.log(`💰 Initial Balance: $${this.INITIAL_BALANCE.toLocaleString()}`);
     console.log(`🎯 Target Daily Profit: $${this.TARGET_DAILY_PROFIT.toLocaleString()}`);

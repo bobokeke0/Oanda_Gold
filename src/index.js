@@ -8,6 +8,7 @@ import logger from './logger.js';
 import OandaClient from './oanda_client.js';
 import TechnicalAnalysis from './technical_analysis.js';
 import TripleConfirmationStrategy from './strategy.js';
+import MACrossoverStrategy from './ma_crossover_strategy.js';
 import RiskManager from './risk_manager.js';
 import GoldTelegramBot from './telegram_bot.js';
 
@@ -20,7 +21,16 @@ class GoldTradingBot {
     // Initialize components
     this.client = new OandaClient(logger);
     this.ta = new TechnicalAnalysis(logger);
-    this.strategy = new TripleConfirmationStrategy(logger, this.ta);
+
+    // Load strategy based on config
+    if (Config.STRATEGY_TYPE === 'ma_crossover') {
+      this.strategy = new MACrossoverStrategy(logger, this.ta);
+      logger.info('📊 Using MA Crossover (5/20) strategy');
+    } else {
+      this.strategy = new TripleConfirmationStrategy(logger, this.ta);
+      logger.info('📊 Using Triple Confirmation strategy');
+    }
+
     this.riskManager = new RiskManager(logger, this.client);
 
     // Telegram bot (optional)
@@ -32,7 +42,7 @@ class GoldTradingBot {
     // Track last API error notification (to avoid spam)
     this.lastApiErrorNotification = null;
 
-    logger.info('🤖 Gold Trading Bot initialized');
+    logger.info(`🤖 ${Config.BOT_NAME} initialized`);
   }
 
   /**
@@ -193,8 +203,10 @@ class GoldTradingBot {
       const analysis = this.ta.analyze(candles);
       this.ta.logAnalysis(analysis);
 
-      // Evaluate strategy
-      const setup = this.strategy.evaluateSetup(analysis);
+      // Evaluate strategy (MA Crossover needs candles for SMA calculation)
+      const setup = Config.STRATEGY_TYPE === 'ma_crossover'
+        ? this.strategy.evaluateSetup(analysis, candles)
+        : this.strategy.evaluateSetup(analysis);
 
       if (!setup.signal) {
         logger.info(`No setup: ${setup.reason}`);
@@ -218,8 +230,10 @@ class GoldTradingBot {
         return;
       }
 
-      // Calculate entry levels
-      const levels = this.strategy.calculateEntryLevels(analysis, setup.signal);
+      // Calculate entry levels (MA Crossover needs sma20 for reference)
+      const levels = Config.STRATEGY_TYPE === 'ma_crossover'
+        ? this.strategy.calculateEntryLevels(analysis, setup.signal, setup.sma20)
+        : this.strategy.calculateEntryLevels(analysis, setup.signal);
 
       // Calculate position size
       const positionSize = this.riskManager.calculatePositionSize(

@@ -58,8 +58,8 @@ class Config {
   static RSI_BEARISH_MAX = parseFloat(process.env.RSI_BEARISH_MAX || '60');
 
   // Strategy Filters (to avoid choppy/ranging markets)
-  static MIN_EMA_SEPARATION_PIPS = parseFloat(process.env.MIN_EMA_SEPARATION_PIPS || '800'); // $8.00 minimum EMA separation
-  static MIN_CONFIDENCE = parseFloat(process.env.MIN_CONFIDENCE || '60'); // Skip setups below 60% confidence
+  static MIN_EMA_SEPARATION_PIPS = parseFloat(process.env.MIN_EMA_SEPARATION_PIPS || '1000'); // $10.00 minimum EMA separation
+  static MIN_CONFIDENCE = parseFloat(process.env.MIN_CONFIDENCE || '70'); // Skip setups below 70% confidence
 
   // Entry & Exit Rules
   // For gold: 1 pip = $0.01, so 300 pips = $3.00 stop loss (reasonable for gold volatility)

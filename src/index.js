@@ -134,6 +134,7 @@ class GoldTradingBot {
 
       const scheduleNextScan = () => {
         setTimeout(async () => {
+          logger.info('🚨 SCAN TIMEOUT CALLBACK FIRED!');
           try {
             // Heartbeat log to verify scan is executing
             const now = new Date().toISOString().replace('T', ' ').substring(0, 19);
@@ -200,6 +201,7 @@ class GoldTradingBot {
 
       const scheduleNextMonitor = () => {
         setTimeout(async () => {
+          logger.info('🚨 MONITOR TIMEOUT CALLBACK FIRED!');
           try {
             if (this.isRunning) {
               try {

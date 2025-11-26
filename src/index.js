@@ -134,7 +134,6 @@ class GoldTradingBot {
 
       const scheduleNextScan = () => {
         setTimeout(async () => {
-          logger.info('🚨 SCAN TIMEOUT CALLBACK FIRED!');
           try {
             // Heartbeat log to verify scan is executing
             const now = new Date().toISOString().replace('T', ' ').substring(0, 19);
@@ -201,7 +200,6 @@ class GoldTradingBot {
 
       const scheduleNextMonitor = () => {
         setTimeout(async () => {
-          logger.info('🚨 MONITOR TIMEOUT CALLBACK FIRED!');
           try {
             if (this.isRunning) {
               try {
@@ -239,25 +237,11 @@ class GoldTradingBot {
       scheduleNextMonitor();
       logger.info(`✅ Recursive setTimeout initialized for position monitoring`);
 
-      // DEBUG: Test if setTimeout works with sync vs async callbacks
-      setTimeout(() => {
-        logger.info('🔥 SYNC TIMEOUT - 5 SECONDS!');
-      }, 5000);
-
-      setTimeout(async () => {
-        logger.info('🔥 ASYNC TIMEOUT - 10 SECONDS!');
-      }, 10000);
-
-      setTimeout(() => {
-        logger.info('🔥 SYNC TIMEOUT - 15 SECONDS!');
-      }, 15000);
-
       logger.info('');
       logger.info('═'.repeat(70));
       logger.info('✅ BOT IS RUNNING - Press Ctrl+C to stop');
       logger.info('═'.repeat(70));
       logger.info('');
-      logger.info('🧪 TESTING: Simple 5s and 10s timeouts scheduled to test if timers work AT ALL');
 
       // Keep process alive
       process.on('SIGINT', async () => {

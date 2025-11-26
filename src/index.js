@@ -131,30 +131,47 @@ class GoldTradingBot {
       const scanInterval = `*/${Config.SCAN_INTERVAL_MINUTES} * * * *`;
       logger.info(`⏰ Scheduling market scans every ${Config.SCAN_INTERVAL_MINUTES} minutes`);
 
-      cron.schedule(scanInterval, async () => {
-        // Heartbeat log to verify cron is executing
-        const now = new Date().toISOString().replace('T', ' ').substring(0, 19);
-        logger.info(`⏰ [${now}] Cron heartbeat - isRunning: ${this.isRunning}`);
-
-        if (this.isRunning) {
+      cron.schedule(scanInterval, () => {
+        // CRITICAL: Wrap EVERYTHING in try-catch to prevent cron death
+        (async () => {
           try {
-            await this.scanMarket();
-          } catch (error) {
-            logger.error(`Market scan failed: ${error.message}`);
-            logger.warn(`Will retry in ${Config.SCAN_INTERVAL_MINUTES} minutes`);
+            // Heartbeat log to verify cron is executing
+            const now = new Date().toISOString().replace('T', ' ').substring(0, 19);
+            logger.info(`⏰ [${now}] Cron heartbeat - isRunning: ${this.isRunning}`);
 
-            // Notify user if it's an API outage (with safe error handling)
-            if (error.message.includes('503') || error.message.includes('failed after')) {
-              if (this.telegramBot) {
-                try {
-                  await this.telegramBot.notifyError(`⚠️ API Issue: ${error.message}\n\nBot is still running and will retry automatically.`);
-                } catch (telegramError) {
-                  logger.warn(`Failed to send Telegram notification: ${telegramError.message}`);
+            if (this.isRunning) {
+              try {
+                await this.scanMarket();
+              } catch (error) {
+                logger.error(`Market scan failed: ${error.message}`);
+                logger.error(`Stack: ${error.stack}`);
+                logger.warn(`Will retry in ${Config.SCAN_INTERVAL_MINUTES} minutes`);
+
+                // Notify user if it's an API outage (with safe error handling)
+                if (error.message.includes('503') || error.message.includes('failed after')) {
+                  if (this.telegramBot) {
+                    try {
+                      await this.telegramBot.notifyError(`⚠️ API Issue: ${error.message}\n\nBot is still running and will retry automatically.`);
+                    } catch (telegramError) {
+                      logger.warn(`Failed to send Telegram notification: ${telegramError.message}`);
+                    }
+                  }
                 }
               }
+            } else {
+              logger.warn(`⏸️ Bot is paused (isRunning: false) - skipping scan`);
             }
+          } catch (cronError) {
+            // CRITICAL: Catch ANY error in cron callback to prevent cron death
+            logger.error(`🚨 CRITICAL: Cron callback error: ${cronError.message}`);
+            logger.error(`Stack: ${cronError.stack}`);
+            logger.error('Cron will continue despite this error');
           }
-        }
+        })().catch(fatalError => {
+          // ULTIMATE SAFETY NET: Catch promise rejections
+          logger.error(`🚨 FATAL: Unhandled promise in cron: ${fatalError.message}`);
+          logger.error(`Stack: ${fatalError.stack}`);
+        });
       });
 
       // Run initial scan
@@ -177,28 +194,43 @@ class GoldTradingBot {
       });
 
       // Monitor existing positions every minute
-      cron.schedule('* * * * *', async () => {
-        if (this.isRunning) {
+      cron.schedule('* * * * *', () => {
+        // CRITICAL: Wrap EVERYTHING in try-catch to prevent cron death
+        (async () => {
           try {
-            await this.monitorPositions();
-          } catch (error) {
-            logger.error(`Position monitoring failed: ${error.message}`);
-            logger.warn('Will retry in 1 minute');
+            if (this.isRunning) {
+              try {
+                await this.monitorPositions();
+              } catch (error) {
+                logger.error(`Position monitoring failed: ${error.message}`);
+                logger.error(`Stack: ${error.stack}`);
+                logger.warn('Will retry in 1 minute');
 
-            // Notify user if it's an API outage (but only once per hour to avoid spam)
-            if ((error.message.includes('503') || error.message.includes('failed after')) &&
-                (!this.lastApiErrorNotification || Date.now() - this.lastApiErrorNotification > 3600000)) {
-              if (this.telegramBot) {
-                try {
-                  await this.telegramBot.notifyError(`⚠️ API Issue during position monitoring: ${error.message}\n\nBot is still running.`);
-                  this.lastApiErrorNotification = Date.now();
-                } catch (telegramError) {
-                  logger.warn(`Failed to send Telegram notification: ${telegramError.message}`);
+                // Notify user if it's an API outage (but only once per hour to avoid spam)
+                if ((error.message.includes('503') || error.message.includes('failed after')) &&
+                    (!this.lastApiErrorNotification || Date.now() - this.lastApiErrorNotification > 3600000)) {
+                  if (this.telegramBot) {
+                    try {
+                      await this.telegramBot.notifyError(`⚠️ API Issue during position monitoring: ${error.message}\n\nBot is still running.`);
+                      this.lastApiErrorNotification = Date.now();
+                    } catch (telegramError) {
+                      logger.warn(`Failed to send Telegram notification: ${telegramError.message}`);
+                    }
+                  }
                 }
               }
             }
+          } catch (cronError) {
+            // CRITICAL: Catch ANY error in cron callback to prevent cron death
+            logger.error(`🚨 CRITICAL: Position monitoring cron error: ${cronError.message}`);
+            logger.error(`Stack: ${cronError.stack}`);
+            logger.error('Cron will continue despite this error');
           }
-        }
+        })().catch(fatalError => {
+          // ULTIMATE SAFETY NET: Catch promise rejections
+          logger.error(`🚨 FATAL: Unhandled promise in position monitoring: ${fatalError.message}`);
+          logger.error(`Stack: ${fatalError.stack}`);
+        });
       });
 
       logger.info('');

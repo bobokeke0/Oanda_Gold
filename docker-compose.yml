@@ -24,6 +24,7 @@ services:
       - MAX_DAILY_LOSS=${MAX_DAILY_LOSS:-150}
 
       # Strategy Parameters
+      - STRATEGY_TYPE=ma_crossover
       - EMA_FAST=${EMA_FAST:-20}
       - EMA_SLOW=${EMA_SLOW:-50}
       - RSI_PERIOD=${RSI_PERIOD:-14}

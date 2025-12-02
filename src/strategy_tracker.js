@@ -7,12 +7,93 @@
  * - Daily/Weekly/Monthly comparison reports
  */
 import logger from './logger.js';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Data file path - use /app/data in Docker, ./data locally
+const DATA_DIR = process.env.NODE_ENV === 'production' ? '/app/data' : path.join(__dirname, '..', 'data');
+const DATA_FILE = path.join(DATA_DIR, 'tracker_data.json');
 
 class StrategyTracker {
   constructor() {
     this.strategies = new Map(); // Map of strategy name -> performance data
     this.liveStrategy = null; // Which strategy is trading live
     this.hypotheticalTrades = new Map(); // Track hypothetical open positions
+
+    // Load persisted data on startup
+    this.load();
+  }
+
+  /**
+   * Save tracker data to file for persistence across restarts
+   */
+  save() {
+    try {
+      // Ensure data directory exists
+      if (!fs.existsSync(DATA_DIR)) {
+        fs.mkdirSync(DATA_DIR, { recursive: true });
+      }
+
+      // Convert Maps to plain objects for JSON serialization
+      const data = {
+        liveStrategy: this.liveStrategy,
+        strategies: {},
+        hypotheticalTrades: {}
+      };
+
+      for (const [name, strategyData] of this.strategies) {
+        data.strategies[name] = { ...strategyData };
+      }
+
+      for (const [id, trade] of this.hypotheticalTrades) {
+        data.hypotheticalTrades[id] = trade;
+      }
+
+      fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2));
+      logger.debug(`💾 Tracker data saved to ${DATA_FILE}`);
+    } catch (error) {
+      logger.error(`Failed to save tracker data: ${error.message}`);
+    }
+  }
+
+  /**
+   * Load tracker data from file
+   */
+  load() {
+    try {
+      if (!fs.existsSync(DATA_FILE)) {
+        logger.info('📂 No existing tracker data found, starting fresh');
+        return;
+      }
+
+      const rawData = fs.readFileSync(DATA_FILE, 'utf8');
+      const data = JSON.parse(rawData);
+
+      this.liveStrategy = data.liveStrategy || null;
+
+      // Restore strategies Map
+      if (data.strategies) {
+        for (const [name, strategyData] of Object.entries(data.strategies)) {
+          this.strategies.set(name, strategyData);
+        }
+      }
+
+      // Restore hypothetical trades Map
+      if (data.hypotheticalTrades) {
+        for (const [id, trade] of Object.entries(data.hypotheticalTrades)) {
+          this.hypotheticalTrades.set(id, trade);
+        }
+      }
+
+      const totalTrades = Array.from(this.strategies.values()).reduce((sum, s) => sum + s.totalTrades, 0);
+      logger.info(`📂 Loaded tracker data: ${this.strategies.size} strategies, ${totalTrades} historical trades`);
+    } catch (error) {
+      logger.error(`Failed to load tracker data: ${error.message}`);
+    }
   }
 
   /**
@@ -39,6 +120,9 @@ class StrategyTracker {
     }
 
     logger.info(`📊 Registered strategy: ${name} ${isLive ? '(LIVE)' : '(HYPOTHETICAL)'}`);
+
+    // Persist changes
+    this.save();
   }
 
   /**
@@ -78,6 +162,9 @@ class StrategyTracker {
     }
 
     logger.info(`${strategy.isLive ? '🟢 LIVE' : '📝 HYPOTHETICAL'} ${strategyName}: ${signal} at $${entryPrice.toFixed(2)} (Confidence: ${confidence}%)`);
+
+    // Persist changes
+    this.save();
 
     return trade;
   }
@@ -141,6 +228,9 @@ class StrategyTracker {
 
     const duration = Math.round((trade.exitTime - trade.entryTime) / 1000 / 60); // minutes
     logger.info(`${strategy.isLive ? '🟢 LIVE' : '📝 HYPOTHETICAL'} ${strategyName}: Closed ${trade.signal} - P&L: ${pnl >= 0 ? '+' : ''}$${pnl.toFixed(2)} (${duration}min)`);
+
+    // Persist changes
+    this.save();
 
     return trade;
   }

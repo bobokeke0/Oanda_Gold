@@ -659,7 +659,7 @@ class GoldTradingBot {
           const currentPrice = await this.client.getPrice(trade.instrument);
           const price = currentPrice.mid;
 
-          const isLong = trade.currentUnits > 0;
+          const isLong = trade.units > 0;
           const tp1Hit = isLong
             ? price >= tracked.takeProfit1
             : price <= tracked.takeProfit1;
@@ -670,7 +670,7 @@ class GoldTradingBot {
             );
 
             // Close 60% of position (minimum 1 unit)
-            const totalUnits = Math.abs(trade.currentUnits);
+            const totalUnits = Math.abs(trade.units);
             let closeUnits = Math.floor(totalUnits * 0.6);
 
             // Handle small positions: if we can't close 60%, close what we can
@@ -789,7 +789,7 @@ class GoldTradingBot {
         if (tracked.tp1Hit && Config.ENABLE_TRAILING_STOP) {
           const currentPrice = await this.client.getPrice(trade.instrument);
           const price = currentPrice.mid;
-          const isLong = trade.currentUnits > 0;
+          const isLong = trade.units > 0;
 
           // Update best price if price moved favorably
           const priceMovedFavorably = isLong

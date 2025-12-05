@@ -638,27 +638,29 @@ class GoldTradingBot {
           const currentPrice = await this.client.getPrice(trade.instrument);
           const price = currentPrice.mid;
 
-          const isLong = trade.currentUnits > 0;
+          const isLong = trade.units > 0;
           const tp1Hit = isLong
             ? price >= tracked.takeProfit1
             : price <= tracked.takeProfit1;
+
+          logger.info(`   TP1 Check: price=$${price.toFixed(2)}, TP1=$${tracked.takeProfit1?.toFixed(2)}, isLong=${isLong}, tp1Hit=${tp1Hit}`);
 
           if (tp1Hit) {
             logger.info(`🎯 TP1 reached for ${trade.tradeId} at $${price.toFixed(2)}`);
 
             // Close 60% of position
-            const closeUnits = Math.floor(Math.abs(trade.currentUnits) * 0.6);
+            const closeUnits = Math.floor(Math.abs(trade.units) * 0.6);
 
             // For Oanda, units must be a string - try integer format first
             // Oanda shows units as "159.0" but accepts integer strings for close
             const unitsToClose = String(closeUnits);
 
-            logger.info(`📊 Attempting to close ${unitsToClose} units (60% of ${Math.abs(trade.currentUnits)})`);
+            logger.info(`📊 Attempting to close ${unitsToClose} units (60% of ${Math.abs(trade.units)})`);
 
             try {
               // Validate units before sending
               if (closeUnits <= 0 || isNaN(closeUnits)) {
-                logger.error(`Invalid closeUnits calculated: ${closeUnits} from currentUnits: ${trade.currentUnits}`);
+                logger.error(`Invalid closeUnits calculated: ${closeUnits} from units: ${trade.units}`);
                 continue;
               }
 
@@ -725,7 +727,7 @@ class GoldTradingBot {
         if (Config.ENABLE_TRAILING_STOP) {
           const currentPrice = await this.client.getPrice(trade.instrument);
           const price = currentPrice.mid;
-          const isLong = trade.currentUnits > 0;
+          const isLong = trade.units > 0;
           const trailDistance = Config.pipsToPrice(Config.TRAILING_STOP_DISTANCE_PIPS);
 
           // Calculate how much price has moved in our favor

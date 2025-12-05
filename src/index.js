@@ -626,7 +626,12 @@ class GoldTradingBot {
 
       for (const trade of openTrades) {
         const tracked = this.activePositions.get(trade.tradeId);
-        if (!tracked) continue;
+        if (!tracked) {
+          logger.warn(`⚠️ Trade ${trade.tradeId} not in activePositions (keys: [${Array.from(this.activePositions.keys()).join(', ')}])`);
+          continue;
+        }
+
+        logger.info(`📍 Monitoring trade ${trade.tradeId}: ${trade.units} units @ $${trade.price.toFixed(2)}, P&L: $${trade.unrealizedPL.toFixed(2)}`);
 
         // Check if TP1 was hit - close 60% and move stop to breakeven
         if (!tracked.tp1Hit) {

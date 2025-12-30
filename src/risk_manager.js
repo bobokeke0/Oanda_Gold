@@ -3,6 +3,16 @@
  * Handles position sizing, portfolio heat, and risk limits
  */
 import Config from './config.js';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Stats file path - use /app/data in Docker, ./data locally
+const DATA_DIR = process.env.NODE_ENV === 'production' ? '/app/data' : path.join(__dirname, '..', 'data');
+const STATS_FILE = path.join(DATA_DIR, 'trading_stats.json');
 
 class RiskManager {
   constructor(logger, oandaClient) {
@@ -24,6 +34,78 @@ class RiskManager {
 
     this.initialBalance = Config.INITIAL_BALANCE;
     this.currentBalance = Config.INITIAL_BALANCE;
+
+    // Load persisted stats on startup
+    this.loadStats();
+  }
+
+  /**
+   * Save trading stats to file for persistence across restarts
+   */
+  saveStats() {
+    try {
+      if (!fs.existsSync(DATA_DIR)) {
+        fs.mkdirSync(DATA_DIR, { recursive: true });
+      }
+
+      const stats = {
+        dailyPnL: this.dailyPnL,
+        dailyTrades: this.dailyTrades,
+        winningTrades: this.winningTrades,
+        losingTrades: this.losingTrades,
+        lastResetDate: this.lastResetDate,
+        totalPnL: this.totalPnL,
+        totalTrades: this.totalTrades,
+        totalWins: this.totalWins,
+        totalLosses: this.totalLosses,
+        savedAt: new Date().toISOString()
+      };
+
+      fs.writeFileSync(STATS_FILE, JSON.stringify(stats, null, 2));
+      this.logger.debug(`💾 Trading stats saved`);
+    } catch (error) {
+      this.logger.error(`Failed to save trading stats: ${error.message}`);
+    }
+  }
+
+  /**
+   * Load trading stats from file
+   */
+  loadStats() {
+    try {
+      if (!fs.existsSync(STATS_FILE)) {
+        this.logger.info('📂 No existing trading stats found, starting fresh');
+        return;
+      }
+
+      const rawData = fs.readFileSync(STATS_FILE, 'utf8');
+      const stats = JSON.parse(rawData);
+
+      // Check if stats are from today
+      const today = new Date().toDateString();
+      if (stats.lastResetDate === today) {
+        // Load daily stats only if same day
+        this.dailyPnL = stats.dailyPnL || 0;
+        this.dailyTrades = stats.dailyTrades || 0;
+        this.winningTrades = stats.winningTrades || 0;
+        this.losingTrades = stats.losingTrades || 0;
+        this.lastResetDate = stats.lastResetDate;
+        this.logger.info(`📂 Loaded daily stats: P&L=$${this.dailyPnL.toFixed(2)}, Trades=${this.dailyTrades}`);
+      } else {
+        this.logger.info(`📂 Stats from previous day (${stats.lastResetDate}), resetting daily stats`);
+        this.lastResetDate = today;
+      }
+
+      // Always load all-time stats
+      this.totalPnL = stats.totalPnL || 0;
+      this.totalTrades = stats.totalTrades || 0;
+      this.totalWins = stats.totalWins || 0;
+      this.totalLosses = stats.totalLosses || 0;
+
+      this.logger.info(`📂 Loaded all-time stats: P&L=$${this.totalPnL.toFixed(2)}, Trades=${this.totalTrades}, Wins=${this.totalWins}, Losses=${this.totalLosses}`);
+    } catch (error) {
+      this.logger.error(`Failed to load trading stats: ${error.message}`);
+    }
   }
 
   /**
@@ -38,6 +120,7 @@ class RiskManager {
       this.winningTrades = 0;
       this.losingTrades = 0;
       this.lastResetDate = today;
+      this.saveStats(); // Persist the reset
     }
   }
 
@@ -168,6 +251,9 @@ class RiskManager {
       dailyPnL: this.dailyPnL.toFixed(2),
       totalPnL: this.totalPnL.toFixed(2)
     });
+
+    // Persist stats after each trade
+    this.saveStats();
   }
 
   /**
